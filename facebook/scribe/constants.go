@@ -4,9 +4,9 @@
 package scribe
 
 import (
-	"facebook/fb303"
 	"fmt"
 	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apuckey/scribe-logger-go/facebook/fb303"
 	"math"
 )
 
