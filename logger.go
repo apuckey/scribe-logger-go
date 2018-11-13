@@ -102,21 +102,21 @@ type LoggingHandler interface {
 	Emit(ctx *MessageContext, message string, args ...interface{}) error
 }
 
-type strandardHandler struct {
+type standardHandler struct {
 	formatter Formatter
 }
 
-func (l *strandardHandler) SetFormatter(f Formatter) {
+func (l *standardHandler) SetFormatter(f Formatter) {
 	l.formatter = f
 }
 
 // default handling interface - just
-func (l *strandardHandler) Emit(ctx *MessageContext, message string, args ...interface{}) error {
+func (l *standardHandler) Emit(ctx *MessageContext, message string, args ...interface{}) error {
 	fmt.Fprintln(os.Stderr, l.formatter.Format(ctx, message, args...))
 	return nil
 }
 
-var currentHandler LoggingHandler = &strandardHandler{
+var currentHandler LoggingHandler = &standardHandler{
 	DefaultFormatter,
 }
 

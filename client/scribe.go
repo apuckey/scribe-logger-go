@@ -1,19 +1,24 @@
 package scribe
 
 import (
-	"errors"
+	"fmt"
+	"github.com/apuckey/scribe-logger-go"
+	"github.com/apuckey/scribe-logger-go/facebook/scribe"
 	"net"
+	"os"
 
-	"../facebook/scribe"
 	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type ScribeLogger struct {
 	transport *thrift.TFramedTransport
 	client    *scribe.ScribeClient
+	category  string
+	channel   chan *scribe.LogEntry
+	formatter logger.Formatter
 }
 
-func NewScribeLogger(host, port string) (*ScribeLogger, error) {
+func NewScribeLogger(host, port, category string, bufferSize int) (*ScribeLogger, error) {
 	Ttransport, err := thrift.NewTSocket(net.JoinHostPort(host, port))
 	if err != nil {
 		return nil, err
@@ -26,55 +31,71 @@ func NewScribeLogger(host, port string) (*ScribeLogger, error) {
 	if err := transport.Open(); err != nil {
 		return nil, err
 	}
-	return &ScribeLogger{
+
+	l := &ScribeLogger{
 		transport: transport,
 		client:    client,
-	}, nil
+		category:  category,
+		channel:   make(chan *scribe.LogEntry, bufferSize),
+	}
+
+	go l.sendLoop()
+
+	return l, nil
 }
 
-func (s *ScribeLogger) SendOne(category, message string) (bool, error) {
+func (s *ScribeLogger) sendLoop() {
+
+	defer func() {
+		e := recover()
+		if e != nil {
+			fmt.Fprintf(os.Stderr, "Restarting sender go routine.")
+			go s.sendLoop()
+		}
+
+	}()
+
+	for msg := range s.channel {
+		if msg != nil {
+			//send to the server
+			result, err := s.client.Log([]*scribe.LogEntry{msg})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeError]: %s", err.Error()))
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("            -> %s", msg.Message))
+			}
+			if result != scribe.ResultCode_OK {
+				fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeDown]: %s", msg.Message))
+			}
+		}
+	}
+}
+
+func (s *ScribeLogger) SendOne(message string) {
 	logEntry := &scribe.LogEntry{
-		Category: category,
-		Message: message,
+		Category: s.category,
+		Message:  message,
 	}
-	result, err := s.client.Log([]*scribe.LogEntry{logEntry})
-	if err != nil {
-		return false, err
-	}
-	return s.dealResult(result)
+	s.channel <- logEntry
 }
 
-func (s *ScribeLogger) SendArray(category string, messages []string) (bool, error) {
-	var logEntrys []*scribe.LogEntry
-
+func (s *ScribeLogger) SendArray(category string, messages []string) {
 	for _, message := range messages {
 		logEntry := &scribe.LogEntry{
-			Category: category,
-			Message: message,
+			Category: s.category,
+			Message:  message,
 		}
-		logEntrys = append(logEntrys, logEntry)
+		s.channel <- logEntry
 	}
-	result, err := s.client.Log(logEntrys)
-	if err != nil {
-		return false, err
-	}
-	return s.dealResult(result)
-}
-
-func (s *ScribeLogger) dealResult(result scribe.ResultCode) (bool, error) {
-	ok := false
-	var err error
-	switch result {
-	case scribe.ResultCode_OK:
-		ok = true
-	case scribe.ResultCode_TRY_LATER:
-		ok = false
-	default:
-		err = errors.New(result.String())
-	}
-	return ok, err
 }
 
 func (s *ScribeLogger) Close() error {
 	return s.transport.Close()
+}
+
+func (s *ScribeLogger) SetFormatter(f logger.Formatter) {
+	s.formatter = f
+}
+
+func (s *ScribeLogger) Emit(ctx *logger.MessageContext, message string, args ...interface{}) error {
+	str := fmt.Sprintf("%s%s", s.formatter.Format(ctx, message, args...), "\n")
 }
