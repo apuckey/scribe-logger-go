@@ -7,7 +7,6 @@ import (
 	"github.com/apuckey/scribe-logger-go/facebook/scribe"
 	"net"
 	"os"
-
 )
 
 type ScribeLogger struct {
@@ -18,7 +17,7 @@ type ScribeLogger struct {
 	formatter logger.Formatter
 }
 
-func NewScribeLogger(host, port, category string, bufferSize int) (*ScribeLogger, error) {
+func NewScribeLogger(host, port, category string, formatter logger.Formatter, bufferSize int) (*ScribeLogger, error) {
 	Ttransport, err := thrift.NewTSocket(net.JoinHostPort(host, port))
 	if err != nil {
 		return nil, err
@@ -37,6 +36,7 @@ func NewScribeLogger(host, port, category string, bufferSize int) (*ScribeLogger
 		client:    client,
 		category:  category,
 		channel:   make(chan *scribe.LogEntry, bufferSize),
+		formatter: formatter,
 	}
 
 	go l.sendLoop()
