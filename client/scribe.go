@@ -96,7 +96,7 @@ func (s *ScribeLogger) SetFormatter(f logger.Formatter) {
 	s.formatter = f
 }
 
-func (s *ScribeLogger) Emit(ctx *logger.MessageContext, message string, args ...interface{}) error {
-	s.sendOne(s.formatter.Format(ctx, message, args))
+func (s *ScribeLogger) Emit(ctx *logger.MessageContext, message string) error {
+	s.sendOne(s.formatter.Format(ctx, message))
 	return nil
 }

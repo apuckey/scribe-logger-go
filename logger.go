@@ -44,7 +44,7 @@ var LevlelsByName = map[string]int{
 }
 
 //default logging level is ALL
-var level int = ALL
+var level = ALL
 
 // Set the logging level.
 //
@@ -83,7 +83,7 @@ func SetMinimalLevelByName(l string) error {
 	l = strings.ToUpper(strings.Trim(l, " "))
 	level, found := LevlelsByName[l]
 	if !found {
-		Error("Could not set level - not found level %s", l)
+		Error("Could not set level - not found level %s")
 		return fmt.Errorf("Invalid level %s", l)
 	}
 
@@ -99,7 +99,7 @@ func SetOutput(w io.Writer) {
 //a pluggable logger interface
 type LoggingHandler interface {
 	SetFormatter(Formatter)
-	Emit(ctx *MessageContext, message string, args ...interface{}) error
+	Emit(ctx *MessageContext, message string) error
 }
 
 type standardHandler struct {
@@ -111,8 +111,8 @@ func (l *standardHandler) SetFormatter(f Formatter) {
 }
 
 // default handling interface - just
-func (l *standardHandler) Emit(ctx *MessageContext, message string, args ...interface{}) error {
-	fmt.Fprintln(os.Stderr, l.formatter.Format(ctx, message, args...))
+func (l *standardHandler) Emit(ctx *MessageContext, message string) error {
+	fmt.Fprintln(os.Stderr, l.formatter.Format(ctx, message))
 	return nil
 }
 
@@ -151,77 +151,61 @@ func getContext(level string, skipDepth int) *MessageContext {
 }
 
 //Output debug logging messages
-func Debug(msg string, args ...interface{}) {
+func Debug(msg string) {
 	if level&DEBUG != 0 {
-		writeMessage("DEBUG", msg, args...)
+		writeMessage("DEBUG", msg)
 	}
 }
 
 //format the message
-func writeMessage(level string, msg string, args ...interface{}) {
-	writeMessageDepth(4, level, msg, args...)
+func writeMessage(level string, msg string) {
+	writeMessageDepth(4, level, msg)
 }
 
-func writeMessageDepth(depth int, level string, msg string, args ...interface{}) {
+func writeMessageDepth(depth int, level string, msg string) {
 	ctx := getContext(level, depth)
 
-	// We go over the args, and replace any function pointer with the signature
-	// func() interface{} with the return value of executing it now.
-	// This allows lazy evaluation of arguments which are return values
-	for i, arg := range args {
-		switch arg.(type) {
-		case func() interface{}:
-			args[i] = arg.(func() interface{})()
-		default:
-
-		}
-	}
-
-	err := currentHandler.Emit(ctx, msg, args...)
+	err := currentHandler.Emit(ctx, msg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing log message: %s\n", err)
-		fmt.Fprintln(os.Stderr, DefaultFormatter.Format(ctx, msg, args...))
+		fmt.Fprintln(os.Stderr, DefaultFormatter.Format(ctx, msg))
 	}
 
 }
 
 //output INFO level messages
-func Info(msg string, args ...interface{}) {
-
+func Info(msg string) {
 	if level&INFO != 0 {
-
-		writeMessage("INFO", msg, args...)
-
+		writeMessage("INFO", msg)
 	}
 }
 
 // Output WARNING level messages
-func Warning(msg string, args ...interface{}) {
+func Warning(msg string) {
 	if level&WARN != 0 {
-		writeMessage("WARNING", msg, args...)
+		writeMessage("WARNING", msg)
 	}
 }
 
 // Same as Warning() but return a formatted error object, regardless of logging level
-func Warningf(msg string, args ...interface{}) error {
-	err := fmt.Errorf(msg, args...)
+func Warningf(msg string) error {
+	err := fmt.Errorf(msg)
 	if level&WARN != 0 {
 		writeMessage("WARNING", err.Error())
 	}
-
 	return err
 }
 
 // Output ERROR level messages
-func Error(msg string, args ...interface{}) {
+func Error(msg string) {
 	if level&ERROR != 0 {
-		writeMessage("ERROR", msg, args...)
+		writeMessage("ERROR", msg)
 	}
 }
 
 // Same as Error() but also returns a new formatted error object with the message regardless of logging level
-func Errorf(msg string, args ...interface{}) error {
-	err := fmt.Errorf(msg, args...)
+func Errorf(msg string) error {
+	err := fmt.Errorf(msg)
 	if level&ERROR != 0 {
 		writeMessage("ERROR", err.Error())
 	}
@@ -229,24 +213,24 @@ func Errorf(msg string, args ...interface{}) error {
 }
 
 // Output NOTICE level messages
-func Notice(msg string, args ...interface{}) {
+func Notice(msg string) {
 	if level&NOTICE != 0 {
-		writeMessage("NOTICE", msg, args...)
+		writeMessage("NOTICE", msg)
 	}
 }
 
 // Output a CRITICAL level message while showing a stack trace
-func Critical(msg string, args ...interface{}) {
+func Critical(msg string) {
 	if level&CRITICAL != 0 {
-		writeMessage("CRITICAL", msg, args...)
+		writeMessage("CRITICAL", msg)
 		log.Println(string(debug.Stack()))
 	}
 }
 
 // Same as critical but also returns an error object with the message regardless of logging level
-func Criticalf(msg string, args ...interface{}) error {
+func Criticalf(msg string) error {
 
-	err := fmt.Errorf(msg, args...)
+	err := fmt.Errorf(msg)
 	if level&CRITICAL != 0 {
 		writeMessage("CRITICAL", err.Error())
 		log.Println(string(debug.Stack()))
@@ -255,10 +239,9 @@ func Criticalf(msg string, args ...interface{}) error {
 }
 
 // Raise a PANIC while writing the stack trace to the log
-func Panic(msg string, args ...interface{}) {
+func Panic(msg string) {
 	log.Println(string(debug.Stack()))
-	log.Panicf(msg, args...)
-
+	log.Panicf(msg)
 }
 
 func init() {
