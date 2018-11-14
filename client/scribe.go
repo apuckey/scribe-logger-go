@@ -70,7 +70,7 @@ func (s *ScribeLogger) sendLoop() {
 	}
 }
 
-func (s *ScribeLogger) SendOne(message string) {
+func (s *ScribeLogger) sendOne(message string) {
 	logEntry := &scribe.LogEntry{
 		Category: s.category,
 		Message:  message,
@@ -78,7 +78,7 @@ func (s *ScribeLogger) SendOne(message string) {
 	s.channel <- logEntry
 }
 
-func (s *ScribeLogger) SendArray(category string, messages []string) {
+func (s *ScribeLogger) sendArray(category string, messages []string) {
 	for _, message := range messages {
 		logEntry := &scribe.LogEntry{
 			Category: s.category,
@@ -97,5 +97,6 @@ func (s *ScribeLogger) SetFormatter(f logger.Formatter) {
 }
 
 func (s *ScribeLogger) Emit(ctx *logger.MessageContext, message string, args ...interface{}) error {
-	str := fmt.Sprintf("%s%s", s.formatter.Format(ctx, message, args...), "\n")
+	s.sendOne(s.formatter.Format(ctx, message, args))
+	return nil
 }
