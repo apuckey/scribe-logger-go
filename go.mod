@@ -1,3 +1,3 @@
-module "ssh://git@gitlab.rawideas.local/raw-ideas/go-scribe-logger"
+module github.com/apuckey/scribe-logger-go
 
-require git.apache.org/thrift.git v0.0.0-20181112125854-24918abba929 // indirect
+require github.com/apache/thrift v0.0.0-20130818235439-ff980c143293 // indirect
