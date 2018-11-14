@@ -2,12 +2,12 @@ package scribe
 
 import (
 	"fmt"
+	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/apuckey/scribe-logger-go"
 	"github.com/apuckey/scribe-logger-go/facebook/scribe"
 	"net"
 	"os"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type ScribeLogger struct {
