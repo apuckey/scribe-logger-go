@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type SimpleFormatter struct {
 }
 
 func (f *SimpleFormatter) Format(ctx *MessageContext, message string) string {
-	return fmt.Sprintf(f.FormatString, ctx.Level, ctx.TimeStamp.Format(time.StampNano), ctx.File, ctx.Line, fmt.Sprintf(message))
+	return fmt.Sprintf(f.FormatString, ctx.Level, ctx.TimeStamp.Format(time.StampNano), ctx.File, ctx.Line, fmt.Sprintf(strings.TrimSuffix(message, "\n")))
 }
 
 var DefaultFormatter Formatter = &SimpleFormatter{
