@@ -49,7 +49,7 @@ func (s *ScribeLogger) sendLoop() {
 	defer func() {
 		e := recover()
 		if e != nil {
-			fmt.Fprintf(os.Stderr, "Restarting sender go routine.")
+			_, _ = fmt.Fprintf(os.Stderr, "[ScribeError]: Restarting sender go routine.")
 			go s.sendLoop()
 		}
 
@@ -60,11 +60,21 @@ func (s *ScribeLogger) sendLoop() {
 			//send to the server
 			result, err := s.client.Log([]*scribe.LogEntry{msg})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeError]: %s", err.Error()))
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("            -> %s", msg.Message))
+				// close transport and reconnect.
+				_ = s.transport.Close()
+				if !s.transport.IsOpen() {
+					err := s.transport.Open()
+					if err != nil {
+						result, err = s.client.Log([]*scribe.LogEntry{msg})
+					}
+					if err != nil {
+						_, _ = fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeError]: %s", err.Error()))
+						_, _ = fmt.Fprintf(os.Stderr, fmt.Sprintf("            -> %s", msg.Message))
+					}
+				}
 			}
 			if result != scribe.ResultCode_OK {
-				fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeDown]: %s", msg.Message))
+				_, _ = fmt.Fprintf(os.Stderr, fmt.Sprintf("[ScribeDown]: %s", msg.Message))
 			}
 		}
 	}
