@@ -107,6 +107,8 @@ func (s *ScribeLogger) SetFormatter(f logger.Formatter) {
 }
 
 func (s *ScribeLogger) Emit(ctx *logger.MessageContext, message string) error {
-	s.sendOne(s.formatter.Format(ctx, message))
+	if ctx != nil {
+		s.sendOne(s.formatter.Format(ctx, message))
+	}
 	return nil
 }
